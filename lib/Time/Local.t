@@ -96,7 +96,7 @@ for (@time, @neg_time) {
             if $year < 70 && ! $neg_epoch_ok;
 
         {
-            my $year_in = $year < 70 ? $year + 1900 : $year;
+            my $year_in = $year < 1000 ? $year + 1900 : $year;
             my $time = timelocal($sec,$min,$hour,$mday,$mon,$year_in);
 
             my($s,$m,$h,$D,$M,$Y) = localtime($time);
@@ -110,7 +110,7 @@ for (@time, @neg_time) {
         }
 
         {
-            my $year_in = $year < 70 ? $year + 1900 : $year;
+            my $year_in = $year < 1000 ? $year + 1900 : $year;
             my $time = timegm($sec,$min,$hour,$mday,$mon,$year_in);
 
             my($s,$m,$h,$D,$M,$Y) = gmtime($time);
