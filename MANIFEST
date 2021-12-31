@@ -2736,6 +2736,7 @@ proto.h				Prototypes
 qnx/ar				QNX implementation of "ar" utility
 qnx/cpp				QNX implementation of preprocessor filter
 README				The Instructions
+README.orig			The Instructions (original file)
 README.aix			Perl notes for AIX
 README.amiga			Perl notes for AmigaOS
 README.apollo			Perl notes for Apollo DomainOS
