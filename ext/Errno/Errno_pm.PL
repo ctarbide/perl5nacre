@@ -31,8 +31,7 @@ if ($Config{gccversion} ne '' && $^O eq 'MSWin32') {
     close INCS;
     process_file('includes.c');
     unlink 'includes.c';
-}
-else {
+} else {
     foreach $file (@files) {
 	process_file($file);
     }
@@ -45,8 +44,8 @@ sub process_file {
 
     # for win32 perl under cygwin, we need to get a windows pathname
     if ($^O eq 'MSWin32' && $Config{cc} =~ /\B-mno-cygwin\b/ &&
-        defined($file) && !-f $file) {
-        chomp($file = `cygpath -w "$file"`);
+	defined($file) && !-f $file) {
+	chomp($file = `cygpath -w "$file"`);
     }
 
     return unless defined $file and -f $file;
@@ -55,28 +54,28 @@ sub process_file {
     local *FH;
     if (($^O eq 'VMS') && ($Config{vms_cc_type} ne 'gnuc')) {
 	unless(open(FH," LIBRARY/EXTRACT=ERRNO/OUTPUT=SYS\$OUTPUT $file |")) {
-            warn "Cannot open '$file'";
-            return;
-	}     
+	    warn "Cannot open '$file'";
+	    return;
+	}
     } elsif ($Config{gccversion} ne ''
-             # OpenSTEP has gcc 2.7.2.1 which recognizes but
+	     # OpenSTEP has gcc 2.7.2.1 which recognizes but
 	     # doesn't implement the -dM flag.
 	     && $^O ne 'openstep' && $^O ne 'next' && $^O ne 'darwin'
-	     ) { 
+	     ) {
 	# With the -dM option, gcc outputs every #define it finds
 	unless(open(FH,"$Config{cc} -E -dM $Config{cppflags} $file |")) {
-            warn "Cannot open '$file'";
-            return;
-	}     
+	    warn "Cannot open '$file'";
+	    return;
+	}
     } else {
 	unless(open(FH,"< $file")) {
 	    # This file could be a temporary file created by cppstdin
 	    # so only warn under -w, and return
-            warn "Cannot open '$file'" if $^W;
-            return;
+	    warn "Cannot open '$file'" if $^W;
+	    return;
 	}
     }
-    
+
     if ($^O eq 'MacOS') {
 	while(<FH>) {
 	    $err{$1} = $2
@@ -86,10 +85,10 @@ sub process_file {
 	while(<FH>) {
 	    $err{$1} = 1
 		if /^\s*#\s*define\s+(E\w+)\s+/;
-            if ($IsMSWin32) {
-	        $wsa{$1} = 1
+	    if ($IsMSWin32) {
+		$wsa{$1} = 1
 	    	    if /^\s*#\s*define\s+WSA(E\w+)\s+/;
-            }
+	    }
 	}
     }
 
@@ -141,7 +140,7 @@ sub get_files {
 	     $file{$1} = 1;
 	}
     } elsif ($^O eq 'linux' &&
-	      $Config{gccversion} ne '' && 
+	      $Config{gccversion} ne '' &&
 	      $Config{gccversion} !~ /intel/i
 	      # might be using, say, Intel's icc
 	     ) {
@@ -163,8 +162,8 @@ sub get_files {
 	# avoid problem where cpp returns non-POSIX pathnames
 	$file{'/system/include_library/errno.h'} = 1;
     } elsif ($IsSymbian) {
-        my $SDK = $ENV{SDK};
-        $SDK =~ s!\\!/!g;
+	my $SDK = $ENV{SDK};
+	$SDK =~ s!\\!/!g;
 	$file{"$SDK/epoc32/include/libc/sys/errno.h"} = 1;
     } else {
 	open(CPPI,"> errno.c") or
@@ -195,8 +194,7 @@ sub get_files {
 	my $pat;
 	if (($IsMSWin32 || $^O eq 'NetWare') and $Config{cc} =~ /^bcc/i) {
 	    $pat = '^/\*\s+(.+)\s+\d+\s*:\s+\*/';
-	}
-	else {
+	} else {
 	    $pat = '^#\s*(?:line)?\s*\d+\s+"([^"]+)"';
 	}
 	while(<CPPO>) {
@@ -206,8 +204,7 @@ sub get_files {
 		   $f =~ s,\\\\,/,g;
 		   $file{$f} = 1;
 		}
-	    }
-	    else {
+	    } else {
 		$file{$1} = 1 if /$pat/o;
 	    }
 	}
@@ -230,8 +227,7 @@ sub write_errno_pm {
 
     if ($^O eq 'NetWare') {
 	print CPPI "#include <nwerrno.h>\n";
-	} 
-    else {
+    } else {
 	print CPPI "#include <errno.h>\n";
     }
     if ($IsMSWin32) {
@@ -243,7 +239,7 @@ sub write_errno_pm {
 	    $err{$err} = 1;
 	}
     }
- 
+
     foreach $err (keys %err) {
 	print CPPI '"',$err,'" [[',$err,']]',"\n";
     }
@@ -262,10 +258,10 @@ sub write_errno_pm {
 	    open(CPPO,"$Config{cpprun} $Config{cppflags} errno.c |") or
 		die "Cannot run '$Config{cpprun} $Config{cppflags} errno.c'";
 	} elsif ($IsSymbian) {
-            my $cpp = "gcc -E -I$ENV{SDK}\\epoc32\\include\\libc -";
+	    my $cpp = "gcc -E -I$ENV{SDK}\\epoc32\\include\\libc -";
 	    open(CPPO,"$cpp < errno.c |")
 		or die "Cannot exec $cpp";
-        } else {
+	} else {
 	    my $cpp = default_cpp();
 	    open(CPPO,"$cpp < errno.c |")
 		or die "Cannot exec $cpp";
@@ -273,21 +269,56 @@ sub write_errno_pm {
 
 	%err = ();
 
+	my ($name, $expr);
 	while(<CPPO>) {
-	    my($name,$expr);
-	    next unless ($name, $expr) = /"(.*?)"\s*\[\s*\[\s*(.*?)\s*\]\s*\]/;
-	    next if $name eq $expr;
+	    chomp;
+	    if (/^\s*"(.*?)"\s*\[\[\s*(.*?)\s*\]\]/) {
+		# set and unleash
+		$name = $1;
+		$expr = $2;
+	    } elsif (/^\s*#/ or /^\s*$/) {
+		next;
+	    } elsif (not $name) {
+		if ($expr) {
+		    die "inconsistency: '$_'";
+		}
+		if (/^\s*"(.*?)"\s*\[\[\s*$/) {
+		    $name = $1;
+		    next;
+		} elsif (/^\s*\w/) {
+		    next;
+		} else {
+		    die "exhaustion: '$_'";
+		}
+	    } elsif (not $expr) {
+		if (/^\s*([^\s]+)\s*$/) {
+		    $expr = $1;
+		    next;
+		} else {
+		    die "exhaustion: '$_'";
+		}
+	    } elsif (/^\s*\]\]\s*$/) {
+		# unleash
+	    } else {
+		die "exhaustion: '$_'";
+	    }
+	    if ($name eq $expr) {
+		# What the hell happened here?!?
+		$name = $expr = undef;
+		next;
+	    }
 	    $expr =~ s/\(?\([a-z_]\w*\)([^\)]*)\)?/$1/i; # ((type)0xcafebabe) at alia
 	    $expr =~ s/((?:0x)?[0-9a-fA-F]+)[LU]+\b/$1/g; # 2147483647L et alia
 	    next if $expr =~ m/^[a-zA-Z]+$/; # skip some Win32 functions
 	    if($expr =~ m/^0[xX]/) {
 		$err{$name} = hex $expr;
+	    } else {
+		$err{$name} = eval $expr;
 	    }
-	    else {
-	    $err{$name} = eval $expr;
-	}
 	    delete $err{$name} unless defined $err{$name};
+	    $name = $expr = undef;
 	}
+	die "No error definitions found" unless keys %err;
 	close(CPPO);
     }
 
@@ -306,14 +337,14 @@ sub write_errno_pm {
 #include <stdio.h>
 int main() {
 EOF
-            for (@allerrs) {
+	    for (@allerrs) {
 		print C qq[printf("$_ %d\n", $_);]
 	    }
-            print C "}\n";
-            close C;
-            system("cc -o errno errno.c");
-            unlink("errno.c");
-            if (open(C, "./errno|")) {
+	    print C "}\n";
+	    close C;
+	    system("cc -o errno errno.c");
+	    unlink("errno.c");
+	    if (open(C, "./errno|")) {
 		while (<C>) {
 		    if (/^(\w+) (-?\d+)$/) { $err{$1} = $2 }
 		}
@@ -321,8 +352,8 @@ EOF
 	    } else {
 		die "failed to execute ./errno: $!\n";
 	    }
-            unlink("errno");
-        } else {
+	    unlink("errno");
+	} else {
 	    die "failed to create errno.c: $!\n";
 	}
     }
@@ -349,7 +380,7 @@ use strict;
 \@ISA = qw(Exporter);
 
 EDQ
-   
+
     my $len = 0;
     my @err = sort { $err{$a} <=> $err{$b} } keys %err;
     map { $len = length if length > $len } @err;
@@ -363,7 +394,7 @@ print <<'ESQ';
     POSIX => [qw(
 ESQ
 
-    my $k = join(" ", grep { exists $err{$_} } 
+    my $k = join(" ", grep { exists $err{$_} }
 	qw(E2BIG EACCES EADDRINUSE EADDRNOTAVAIL EAFNOSUPPORT
 	EAGAIN EALREADY EBADF EBUSY ECHILD ECONNABORTED
 	ECONNREFUSED ECONNRESET EDEADLK EDESTADDRREQ EDOM EDQUOT
@@ -396,7 +427,7 @@ sub FETCH {
     if (defined($proto) && $proto eq "") {
 	no strict 'refs';
 	$errno = &$errname;
-        $errno = 0 unless $! == $errno;
+	$errno = 0 unless $! == $errno;
     }
     return $errno;
 }
@@ -455,12 +486,12 @@ non-zero value only if C<$!> is set to that value. For example:
     use Errno;
 
     unless (open(FH, "/fangorn/spouse")) {
-        if ($!{ENOENT}) {
-            warn "Get a wife!\n";
-        } else {
-            warn "This path is barred: $!";
-        } 
-    } 
+	if ($!{ENOENT}) {
+	    warn "Get a wife!\n";
+	} else {
+	    warn "This path is barred: $!";
+	}
+    }
 
 If a specified constant C<EFOO> does not exist on the system, C<$!{EFOO}>
 returns C<"">.  You may use C<exists $!{EFOO}> to check whether the
@@ -473,7 +504,7 @@ import will fail on platforms that do not have that constant.  A more
 portable way to set C<$!> to a valid value is to use:
 
     if (exists &Errno::EFOO) {
-        $! = &Errno::EFOO;
+	$! = &Errno::EFOO;
     }
 
 =head1 AUTHOR
